@@ -5,11 +5,12 @@ import '../models/document.dart';
 import '../models/message.dart';
 
 class AIService {
-  static const String _apiKey = 'YOUR_GEMINI_API_KEY_HERE';
+  static const String _apiKey = 'REDACTED_GEMINI_KEY';
 
   final GenerativeModel _model;
 
-  AIService() : _model = GenerativeModel(model: 'gemini-pro', apiKey: _apiKey);
+  // Using the model name as requested by the user.
+  AIService() : _model = GenerativeModel(model: 'gemini-2.0-flash', apiKey: _apiKey);
 
   Future<AIResponse?> getResponse(List<Message> messageHistory, Document currentDocument) async {
     try {
@@ -45,7 +46,6 @@ class AIService {
           }
           ''';
 
-      // Generate content with the text-only model
       final response = await _model.generateContent([Content.text(fullPrompt)]);
 
       if (response.text != null) {

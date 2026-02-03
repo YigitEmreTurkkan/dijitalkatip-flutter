@@ -25,7 +25,11 @@ Proje, [orijinal React versiyonundan](https://github.com/YigitEmreTurkkan/dijita
     ```
 
 3.  **API Anahtarını Ekleyin:**
-    `lib/services/ai_service.dart` dosyasını açın ve `_apiKey` değişkenini kendi Google Gemini API anahtarınızla güncelleyin.
+    `.env.example` dosyasını `.env` olarak kopyalayın ve kendi Google Gemini API anahtarınızı ekleyin:
+    ```sh
+    cp .env.example .env
+    ```
+    Ardından `.env` dosyasını açın ve `YOUR_GEMINI_API_KEY_HERE` kısmını kendi API anahtarınızla değiştirin.
 
 4.  **Uygulamayı çalıştırın:**
     ```sh
