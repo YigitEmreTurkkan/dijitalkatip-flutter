@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/message.dart';
 import '../state/app_state.dart';
 import '../widgets/message_bubble.dart';
+import '../theme.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -19,7 +20,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Listen to changes and scroll to the bottom
     final appState = Provider.of<AppState>(context);
     appState.addListener(_scrollToBottom);
   }
@@ -41,54 +41,18 @@ class _ChatScreenState extends State<ChatScreen> {
     final appState = context.watch<AppState>();
     final messages = appState.messages;
     final isLoading = appState.isLoading;
+    final hasParentAppBar = Scaffold.maybeOf(context)?.hasAppBar ?? false;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // slate-50
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B), // slate-800
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B), // amber-500
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(LucideIcons.scale, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Dijital Katip',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-                Text(
-                  'Hukuki Asistan',
-                  style: TextStyle(
-                    color: Color(0xFF94A3B8), // slate-300
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        elevation: 4.0,
-      ),
+      appBar: hasParentAppBar ? null : _buildAppBar(),
       body: Column(
         children: [
           Expanded(
             child: messages.isEmpty
-                ? _buildWelcomeMessage()
+                ? _buildWelcomeMessage(context)
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                     itemCount: messages.length + (isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (isLoading && index == messages.length) {
@@ -104,32 +68,71 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildWelcomeMessage() {
-    // Welcome message UI remains the same
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-        ),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(LucideIcons.scale, size: 48, color: Color(0xFFF59E0B)),
-            SizedBox(height: 16),
-            Text(
-              'Hoş geldiniz!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondary,
+              borderRadius: BorderRadius.circular(8.0),
             ),
-            SizedBox(height: 8),
+            child: Icon(LucideIcons.scale, color: Theme.of(context).colorScheme.onSecondary),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Dijital Katip',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Text(
+                'Hukuki Asistan',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                    ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeMessage(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final isNarrow = MediaQuery.of(context).size.width < 600;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              LucideIcons.scale,
+              size: isNarrow ? 40 : 48,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+            const SizedBox(height: 24),
             Text(
-              'Ben Dijital Katip, Türk hukuku konusunda size yardımcı olmak için buradayım. Hukuki sorununuzu anlatın ve sizin için resmi bir dilekçe hazırlayayım.',
+              '3 adımda dijital katip:',
+              style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '1) Buraya, yani SOHBET ekranına, yaşadığınız hukuki olayı normal Türkçe ile anlatın.\n\n'
+              '2) Üstteki sekmelerden "Belge / PDF" sekmesine geçin. Dilekçenizin güncel halini orada göreceksiniz.\n\n'
+              '3) Belge ekranının sağ alt köşesindeki "PDF İndir" butonuna basarak dilekçenizi PDF olarak indirin.\n\n'
+              'Takıldığınızda bana "Bu uygulamayı nasıl kullanırım?" diye sorabilirsiniz, adım adım tekrar anlatırım.',
+              textAlign: TextAlign.left,
+              style: textTheme.bodyLarge?.copyWith(color: mutedTextColor, height: 1.6),
             ),
           ],
         ),
@@ -138,27 +141,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildLoadingIndicator() {
-    // Loading indicator UI remains the same
-     return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0)), // slate-200
-          ),
-          child: const Row(
-            children: [
-              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-              SizedBox(width: 12),
-              Text('Yanıt hazırlanıyor...'),
-            ],
-          ),
-        ),
-      ],
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: MessageBubble(message: Message(id: 'loading', role: MessageRole.assistant, content: '...', createdAt: DateTime.now())),
     );
   }
 
@@ -166,47 +151,42 @@ class _ChatScreenState extends State<ChatScreen> {
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2)),
+        ],
       ),
       child: SafeArea(
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: TextField(
                 controller: _textController,
                 enabled: !isLoading,
-                style: const TextStyle(fontSize: 16),
+                style: Theme.of(context).textTheme.bodyLarge,
                 decoration: InputDecoration(
-                  hintText: 'Ne yapmak istiyorsunuz? Buraya yazın...',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                  filled: true,
-                  fillColor: isLoading ? const Color(0xFFF1F5F9) : Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1), width: 2),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: const BorderSide(color: Color(0xFF0F172A), width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  hintText: 'Bir mesaj yazın...',
                 ),
+                minLines: 1,
+                maxLines: 5,
                 onSubmitted: isLoading ? null : _handleSubmitted,
+                onChanged: (_) {
+                  // Rebuild to update send button enabled/disabled state
+                  setState(() {});
+                },
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: isLoading || _textController.text.trim().isEmpty
-                  ? null
-                  : () => _handleSubmitted(_textController.text),
+              onPressed: isLoading || _textController.text.trim().isEmpty ? null : () => _handleSubmitted(_textController.text),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.all(16),
+                shape: const CircleBorder(),
               ),
-              child: const Icon(LucideIcons.send),
+              child: isLoading
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(LucideIcons.send, size: 24),
             ),
           ],
         ),
@@ -218,6 +198,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.trim().isEmpty) return;
     context.read<AppState>().sendMessage(text);
     _textController.clear();
+    setState(() {}); // Clear send button disabled/enabled state
+    FocusScope.of(context).unfocus();
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message.dart';
+import '../theme.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -9,39 +10,117 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUserMessage = message.role == MessageRole.user;
-    return Row(
-      mainAxisAlignment: isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        Flexible(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+    final isTyping = message.id == 'loading';
+    final theme = Theme.of(context);
+
+    final alignment = isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Column(
+        crossAxisAlignment: alignment,
+        children: [
+          Container(
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
             decoration: BoxDecoration(
-              color: isUserMessage ? const Color(0xFF1E293B) : Colors.white, // User: slate-800, Assistant: white
-              borderRadius: BorderRadius.circular(20),
-              border: isUserMessage ? null : Border.all(color: const Color(0xFFE2E8F0)), // Assistant: slate-200
-              boxShadow: isUserMessage
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-            ),
-            child: Text(
-              message.content,
-              style: TextStyle(
-                fontSize: 16,
-                color: isUserMessage ? Colors.white : const Color(0xFF1E293B), // User: white, Assistant: slate-800
-                height: 1.4,
+              color: isUserMessage ? theme.colorScheme.primary : theme.colorScheme.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: isUserMessage ? const Radius.circular(20) : const Radius.circular(4),
+                bottomRight: isUserMessage ? const Radius.circular(4) : const Radius.circular(20),
               ),
+              boxShadow: [
+                if (!isUserMessage)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  )
+              ],
             ),
+            child: isTyping ? _buildTypingIndicator(context) : _buildMessageContent(context, isUserMessage),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  Widget _buildMessageContent(BuildContext context, bool isUserMessage) {
+    return Text(
+      message.content,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        color: isUserMessage ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
+        height: 1.5,
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator(BuildContext context) {
+    return const SizedBox(
+      height: 24, // Matches the approximate height of text
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _TypingDot(),
+          SizedBox(width: 4),
+          _TypingDot(delay: Duration(milliseconds: 200)),
+          SizedBox(width: 4),
+          _TypingDot(delay: Duration(milliseconds: 400)),
+        ],
+      ),
+    );
+  }
+}
+
+// Animated dot for the typing indicator
+class _TypingDot extends StatefulWidget {
+  final Duration delay;
+  const _TypingDot({this.delay = Duration.zero});
+
+  @override
+  State<_TypingDot> createState() => _TypingDotState();
+}
+
+class _TypingDotState extends State<_TypingDot> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _controller.reverse();
+        } else if (status == AnimationStatus.dismissed) {
+          _controller.forward();
+        }
+      });
+
+    Future.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.4, end: 1.0).animate(_controller),
+      child: const CircleAvatar(
+        radius: 4,
+        backgroundColor: mutedTextColor,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
