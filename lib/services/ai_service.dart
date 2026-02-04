@@ -8,7 +8,7 @@ import '../models/message.dart';
 
 class AIService {
   // Cloudflare Worker proxy URL (same as web app)
-  static const String _proxyUrl = 'https://yigit-gemini-proxy.yigit-turkkan.workers.dev';
+  static const String _proxyUrl = 'https://yigit-gemini-proxy2.yigit-turkkan.workers.dev';
 
   Future<AIResponse?> getResponse(List<Message> messageHistory, Document currentDocument) async {
     try {
@@ -47,6 +47,25 @@ KURALLAR:
       final systemInstruction = '''
 You are 'Dijital Katip', a helpful legal assistant for Turkish law.
 $documentContext
+
+OUTPUT FORMAT (CRITICAL - DO NOT IGNORE):
+- You MUST respond ONLY with a single valid JSON object.
+- DO NOT add explanations, greetings, Markdown, or any text outside JSON.
+- DO NOT wrap JSON in code blocks.
+- If you add any extra text, the application will fail.
+
+The JSON MUST have exactly this structure:
+{
+  "chat_message": "Kullanıcıya vereceğin sohbet cevabı (Türkçe, sade, anlaşılır).",
+  "document_update": {
+    "header": "Belgenin başlığı veya mevcut başlık",
+    "plaintiff": "Davacı bilgileri",
+    "defendant": "Davalı bilgileri",
+    "subject": "Davanın konusu",
+    "body": "Dilekçenin ayrıntılı gövdesi",
+    "result": "Sonuç ve istem kısmı"
+  }
+}
 
 UX/APP GUIDANCE (very important):
 - The user sees you in a "Chat" tab and the generated legal document in a separate "Document / PDF" tab.
