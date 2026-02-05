@@ -1,11 +1,21 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/widgets.dart' show PdfGoogleFonts;
 import 'package:printing/printing.dart';
 import '../models/document.dart' as model;
 
 class PdfGenerator {
   static Future<void> generatePdf(model.Document doc) async {
-    final pdf = pw.Document();
+    // Google fontları (Türkçe karakter uyumlu) yükle
+    final baseFont = await PdfGoogleFonts.robotoRegular();
+    final boldFont = await PdfGoogleFonts.robotoBold();
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: baseFont,
+        bold: boldFont,
+      ),
+    );
 
     pdf.addPage(
       pw.Page(
@@ -30,7 +40,7 @@ class PdfGenerator {
               _buildSection('HUKUKİ SEBEPLER VE DELİLLER:', doc.legalGrounds),
               _buildSection('DELİLLER:', doc.evidenceList),
               _buildSection('SONUÇ VE İSTEM:', doc.conclusionRequest, isJustified: true),
-              _buildSignatureSection(),
+              _buildSignatureSection(doc),
             ],
           );
         },
@@ -63,7 +73,8 @@ class PdfGenerator {
     );
   }
 
-  static pw.Widget _buildSignatureSection() {
+  static pw.Widget _buildSignatureSection(model.Document doc) {
+    final creatorName = _getCreatorName(doc);
     return pw.Align(
       alignment: pw.Alignment.centerRight,
       child: pw.Padding(
@@ -73,16 +84,24 @@ class PdfGenerator {
           children: [
             pw.Text('Saygılarımla,'),
             pw.SizedBox(height: 48),
-            pw.Container(
-              padding: const pw.EdgeInsets.fromLTRB(24, 4, 24, 4),
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(top: pw.BorderSide(color: PdfColors.grey500)),
-              ),
-              child: pw.Text('İmza'),
-            ),
+            pw.Text('Oluşturan', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text(creatorName),
           ],
         ),
       ),
     );
+  }
+
+  static String _getCreatorName(model.Document doc) {
+    final raw = doc.plaintiffDetails?.trim();
+    if (raw == null || raw.isEmpty) {
+      return '[Adınız Soyadınız]';
+    }
+    final firstLine = raw.split('\n').first.trim();
+    if (firstLine.isEmpty) {
+      return '[Adınız Soyadınız]';
+    }
+    return firstLine;
   }
 }

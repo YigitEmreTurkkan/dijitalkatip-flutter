@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:dk/models/document.dart';
 import 'package:dk/services/pdf_generator.dart';
 import 'package:dk/theme.dart';
+import 'package:dk/state/app_state.dart';
 
 class DocumentScreen extends StatelessWidget {
   final Document? document;
@@ -49,7 +51,7 @@ class DocumentScreen extends StatelessWidget {
                 _buildSection(theme, 'DELİLLER', doc.evidenceList),
                 const SizedBox(height: 24),
                 _buildSection(theme, 'SONUÇ VE İSTEM', doc.conclusionRequest, isJustified: true),
-                _buildSignatureSection(theme),
+                _buildSignatureSection(theme, doc),
                 if (doc.conclusionRequest?.contains('DİKKAT') ?? false)
                   _buildWarningBox(theme),
               ],
@@ -57,12 +59,27 @@ class DocumentScreen extends StatelessWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => PdfGenerator.generatePdf(doc),
-        label: const Text('PDF İndir'),
-        icon: const Icon(LucideIcons.download, size: 20),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'edit-doc',
+            onPressed: () => _openEditDialog(context, doc),
+            label: const Text('Düzenle'),
+            icon: const Icon(Icons.edit, size: 20),
+            backgroundColor: theme.colorScheme.secondary,
+            foregroundColor: theme.colorScheme.onSecondary,
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'pdf-doc',
+            onPressed: () => PdfGenerator.generatePdf(doc),
+            label: const Text('PDF İndir'),
+            icon: const Icon(LucideIcons.download, size: 20),
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+          ),
+        ],
       ),
     );
   }
@@ -141,7 +158,8 @@ class DocumentScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSignatureSection(ThemeData theme) {
+  Widget _buildSignatureSection(ThemeData theme, Document doc) {
+    final creatorName = _getCreatorName(doc);
     return Align(
       alignment: Alignment.centerRight,
       child: Padding(
@@ -151,13 +169,100 @@ class DocumentScreen extends StatelessWidget {
           children: [
             Text('Saygılarımla,', style: theme.textTheme.bodyLarge),
             const SizedBox(height: 64),
-            Text('Davacı Vekili', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Oluşturan', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-             Text('Av. [Adınız Soyadınız]', style: theme.textTheme.bodyLarge),
+            Text(creatorName, style: theme.textTheme.bodyLarge),
             const SizedBox(height: 16),
             Text('(e-imzalıdır)', style: theme.textTheme.bodySmall?.copyWith(color: mutedTextColor)),
 
           ],
+        ),
+      ),
+    );
+  }
+
+  String _getCreatorName(Document doc) {
+    final raw = doc.plaintiffDetails?.trim();
+    if (raw == null || raw.isEmpty) {
+      return '[Adınız Soyadınız]';
+    }
+    final firstLine = raw.split('\n').first.trim();
+    if (firstLine.isEmpty) {
+      return '[Adınız Soyadınız]';
+    }
+    return firstLine;
+  }
+
+  void _openEditDialog(BuildContext context, Document doc) {
+    final headerController = TextEditingController(text: doc.header ?? '');
+    final plaintiffController = TextEditingController(text: doc.plaintiffDetails ?? '');
+    final defendantController = TextEditingController(text: doc.defendantDetails ?? '');
+    final subjectController = TextEditingController(text: doc.subject ?? '');
+    final narrativeController = TextEditingController(text: doc.incidentNarrative ?? '');
+    final legalController = TextEditingController(text: doc.legalGrounds ?? '');
+    final evidenceController = TextEditingController(text: doc.evidenceList ?? '');
+    final conclusionController = TextEditingController(text: doc.conclusionRequest ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Dilekçeyi Düzenle'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildEditField('Başlık', headerController, maxLines: 2),
+                  _buildEditField('Davacı', plaintiffController, maxLines: 4),
+                  _buildEditField('Davalı', defendantController, maxLines: 4),
+                  _buildEditField('Konu', subjectController, maxLines: 3),
+                  _buildEditField('Açıklamalar', narrativeController, maxLines: 8),
+                  _buildEditField('Hukuki Sebepler', legalController, maxLines: 6),
+                  _buildEditField('Deliller', evidenceController, maxLines: 6),
+                  _buildEditField('Sonuç ve İstem', conclusionController, maxLines: 6),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Vazgeç'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.read<AppState>().updateDocument(
+                      header: headerController.text.trim(),
+                      plaintiffDetails: plaintiffController.text.trim(),
+                      defendantDetails: defendantController.text.trim(),
+                      subject: subjectController.text.trim(),
+                      incidentNarrative: narrativeController.text.trim(),
+                      legalGrounds: legalController.text.trim(),
+                      evidenceList: evidenceController.text.trim(),
+                      conclusionRequest: conclusionController.text.trim(),
+                    );
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Kaydet'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEditField(String label, TextEditingController controller, {int maxLines = 3}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          alignLabelWithHint: true,
+          border: const OutlineInputBorder(),
         ),
       ),
     );

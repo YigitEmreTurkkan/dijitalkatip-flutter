@@ -27,12 +27,12 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Av. Adınız Soyadınız',
+                  'Hesabım',
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'İstanbul Barosu • Sicil No: 123456',
+                  'Kişisel bilgiler ve uygulama ayarları',
                   style: theme.textTheme.bodySmall?.copyWith(color: mutedTextColor),
                 ),
               ],
@@ -49,7 +49,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 _ProfileTile(
                   title: 'Kişisel Bilgiler',
-                  subtitle: 'Ad, iletişim bilgileri, baro kaydı',
+                  subtitle: 'Ad ve iletişim bilgileri',
                   icon: Icons.badge_outlined,
                 ),
                 const Divider(height: 1),

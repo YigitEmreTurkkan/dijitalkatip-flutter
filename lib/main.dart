@@ -7,6 +7,8 @@ import 'document_screen.dart';
 import 'theme.dart';
 import 'widgets/dashboard_screen.dart';
 import 'widgets/profile_screen.dart';
+import 'widgets/search_screen.dart';
+import 'widgets/cases_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,84 +38,76 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _MainScreenState extends State<MainScreen> {
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth > 700) {
-          return _buildWideLayout();
-        } else {
-          return _buildNarrowLayout();
-        }
+        final isWide = constraints.maxWidth > 700;
+        return _buildScaffold(isWide: isWide);
       },
     );
   }
 
-  Widget _buildWideLayout() {
-    return Scaffold(
-      body: Consumer<AppState>(
-        builder: (context, appState, child) {
-          return Row(
-            children: [
-              const Expanded(
-                flex: 2,
-                child: ChatScreen(),
-              ),
-              const VerticalDivider(width: 1, thickness: 1),
-              Expanded(
-                flex: 3,
-                child: DocumentScreen(document: appState.document),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildNarrowLayout() {
+  Widget _buildScaffold({required bool isWide}) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dijital Katip'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              text: '1. Sohbet',
-              icon: Icon(Icons.chat_bubble_outline),
-            ),
-            Tab(
-              text: '2. Belge / PDF',
-              icon: Icon(Icons.description_outlined),
-            ),
-          ],
+        centerTitle: true,
+        title: Image.asset(
+          'assets/logo_horizontal.png',
+          height: 32,
+          fit: BoxFit.contain,
         ),
       ),
-      body: Consumer<AppState>(
-        builder: (context, appState, child) {
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              const ChatScreen(),
-              DocumentScreen(document: appState.document),
-            ],
-          );
-        },
+      body: Consumer<AppState>(builder: (context, appState, child) {
+        switch (_index) {
+          case 0:
+            return DashboardScreen(
+              onStartChat: () => setState(() => _index = 1),
+              onViewDocument: () => setState(() => _index = 2),
+            );
+          case 1:
+            if (isWide) {
+              return Row(
+                children: [
+                  const Expanded(
+                    flex: 2,
+                    child: ChatScreen(),
+                  ),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(
+                    flex: 3,
+                    child: DocumentScreen(document: appState.document),
+                  ),
+                ],
+              );
+            }
+            return const ChatScreen();
+          case 2:
+            return DocumentScreen(document: appState.document);
+          case 3:
+            return const SearchScreen();
+          case 4:
+            return const CasesScreen();
+          case 5:
+          default:
+            return const ProfileScreen();
+        }
+      }),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _index,
+        onTap: (i) => setState(() => _index = i),
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(LucideIcons.layoutDashboard), label: 'Başla'),
+          BottomNavigationBarItem(icon: Icon(LucideIcons.messagesSquare), label: 'Sohbet'),
+          BottomNavigationBarItem(icon: Icon(LucideIcons.fileText), label: 'Belgem'),
+          BottomNavigationBarItem(icon: Icon(LucideIcons.search), label: 'Emsal Bul'),
+          BottomNavigationBarItem(icon: Icon(LucideIcons.folder), label: 'Dosyalarım'),
+          BottomNavigationBarItem(icon: Icon(LucideIcons.user), label: 'Ben'),
+        ],
       ),
     );
   }
